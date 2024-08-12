@@ -24,7 +24,7 @@ struct Args {
     #[arg(help = "Path to file")]
     file: String,
 
-    #[arg(short, long, default_value_t = 0)]
+    #[arg(default_value_t = 0, help = "Size in bytes")]
     size: u64,
 }
 
