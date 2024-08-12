@@ -24,8 +24,11 @@ struct Args {
     #[arg(help = "Path to file")]
     file: String,
 
-    #[arg(default_value_t = 0, help = "Size in bytes")]
-    size: u64,
+    #[arg(
+        help = "Size in bytes or human-readable format (e.g., 1M, 2G)",
+        default_value = ""
+    )]
+    size: String,
 }
 
 fn main() {
@@ -44,8 +47,38 @@ fn main() {
         Ok(f) => f,
     };
 
-    if let Err(e) = f.set_len(args.size) {
+    if args.size.is_empty() {
+        return;
+    }
+
+    let size_bytes = match parse_size(&args.size) {
+        Ok(size) => size,
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            exit(1);
+        }
+    };
+
+    if let Err(e) = f.set_len(size_bytes) {
         eprintln!("Error: {}", e);
         exit(1);
+    }
+}
+
+fn parse_size(size_str: &str) -> Result<u64, String> {
+    let size_str = size_str.to_lowercase();
+
+    if let Ok(size) = size_str.parse::<u64>() {
+        return Ok(size);
+    }
+
+    let (size, suffix) = size_str.split_at(size_str.len() - 1);
+    let size = size.parse::<u64>().map_err(|_| "Invalid size")?;
+
+    match suffix {
+        "k" | "kb" => Ok(size * 1024),
+        "m" | "mb" => Ok(size * 1024 * 1024),
+        "g" | "gb" => Ok(size * 1024 * 1024 * 1024),
+        _ => Err("Invalid size suffix".to_string()),
     }
 }
